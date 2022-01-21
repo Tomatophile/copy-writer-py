@@ -6,10 +6,14 @@ class Message:
         QUEUE_EMPTY = 0
         INFO = 1
         INTERRUPT = 2
+        SET_HOTKEY = 3
+        HOTKEY_SET = 4
+        EXIT = -1
 
-    def __init__(self, message_type: Type = Type.INFO, text: str = ''):
+    def __init__(self, message_type: Type = Type.INFO, text: str = '', **kwargs):
         self.type = message_type
         self.text = text
+        self.kwargs = kwargs
 
 
 queues: dict[str, list[Message]] = {}
