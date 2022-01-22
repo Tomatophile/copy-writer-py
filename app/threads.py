@@ -79,3 +79,53 @@ class MessagingThread(InterruptableThread):
 
     def loop(self) -> None:
         self.loop_method()
+
+
+class Worker(MessagingThread):
+    def __init__(self, input_queue: str, output_queue: str):
+        super().__init__(input_queue, output_queue)
+        self.message_handles: dict[Message.Type, list[Callable]] = {
+            Message.Type.SET_HOTKEY: [self.handle_set_hotkey]
+        }
+        self.callbacks: dict[Actions, Callable] = {
+            Actions.WRITE: self.action_write,
+            Actions.INTERRUPT: self.action_interrupt
+        }
+        self.hotkeys: dict[Callable, str] = {
+            self.action_write: Actions.WRITE.value,
+            self.action_interrupt: Actions.INTERRUPT.value
+        }
+
+    def update_hotkeys(self) -> None:
+        for callback, hotkey in self.hotkeys.items():
+            try:
+                keyboard.remove_hotkey(callback)
+            except KeyError:
+                pass
+            keyboard.add_hotkey(hotkey, callback)
+
+    def init(self) -> None:
+        self.update_hotkeys()
+
+    def handle_message(self, message: Message) -> None:
+        handlers = self.message_handles.get(message.type)
+        if handlers is not None:
+            for handler in handlers:
+                handler(message)
+
+    def handle_set_hotkey(self, message: Message) -> None:
+        action: Actions = message.kwargs.get('action')
+        if action is None:
+            raise ValueError('Action must be defined for hotkey')
+        hotkey: str = keyboard.read_hotkey()
+        self.hotkeys[self.callbacks[action]] = hotkey
+        self.update_hotkeys()
+        broker.send(Message(Message.Type.HOTKEY_SET, action=action, hotkey=hotkey), self.output_queue)
+
+    def action_write(self):
+        #TODO
+        pass
+
+    def action_interrupt(self):
+        #TODO
+        pass
