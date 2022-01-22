@@ -42,27 +42,35 @@ class InterruptableThread(Thread):
 
 
 class MessagingThread(InterruptableThread):
-    def __init__(self, queue: str):
+    def __init__(self, input_queue: str, output_queue: str,
+                 init_method: Callable = None, loop_method: Callable = None,
+                 message_handler: Callable = None):
         super().__init__()
-        self.queue = queue
+        self.input_queue = input_queue
+        self.output_queue = output_queue
+        self.init_method = init_method
+        self.loop_method = loop_method
+        self.message_handler = message_handler
 
     def run(self) -> None:
         try:
             self.init()
             while True:
-                message = broker.read(self.queue)
+                message = broker.read(self.input_queue)
                 if message.type == Message.Type.INTERRUPT:
                     self.interrupt()
+                if message.type == Message.Type.EXIT:
+                    self.exit()
                 self.handle_message(message)
                 self.loop()
         except InterruptedException:
             pass
 
     def init(self) -> None:
-        pass
+        self.init_method()
 
     def handle_message(self, message: Message) -> None:
-        pass
+        self.message_handler(message)
 
     def loop(self) -> None:
-        pass
+        self.loop_method()
