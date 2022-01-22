@@ -155,18 +155,14 @@ class Worker(MessagingThread):
         broker.send(Message(Message.Type.HOTKEY_SET, action=action, hotkey=hotkey), self.output_queue)
 
     def action_write(self):
-        try:
-            if self.writing_thread is None or self.writing_thread.interrupted:
-                self.writing_thread = InterruptableThread(Worker.write())
-        finally:
-            keyboard.release(self.hotkeys[self.action_write])
+        keyboard.release(self.hotkeys[self.action_write])
+        if self.writing_thread is None or self.writing_thread.interrupted:
+            self.writing_thread = InterruptableThread(Worker.write())
 
     def action_interrupt(self):
-        try:
-            if self.writing_thread is not None and not self.writing_thread.interrupted:
-                self.writing_thread.interrupt()
-        finally:
-            keyboard.release(self.hotkeys[self.action_write])
+        keyboard.release(self.hotkeys[self.action_interrupt])
+        if self.writing_thread is not None and not self.writing_thread.interrupted:
+            self.writing_thread.interrupt()
 
 
 class Application(MessagingThread):
