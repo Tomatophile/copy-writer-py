@@ -1,11 +1,14 @@
 import ctypes
+import random
 import threading
+import time
 from logging import Logger
 from threading import Thread
 from typing import Callable, Any
 
 import PySimpleGUI
 import keyboard
+import win32clipboard
 
 from app import broker
 from app.actions import Actions
@@ -26,8 +29,8 @@ class InterruptableThread(Thread):
         logger.debug("Trying to interrupt thread with id = %s", tid)
         if not isinstance(thread, InterruptableThread):
             return False
-        thread._interrupted = ctypes.pythonapi.PyThreadState_SetAsyncExc(tid, ctypes.py_object(InterruptedException)) < 1
-        if thread._interrupted:
+        thread.interrupted = ctypes.pythonapi.PyThreadState_SetAsyncExc(tid, ctypes.py_object(InterruptedException)) < 1
+        if thread.interrupted:
             logger.debug("Interrupted thread with id = %s", tid)
             return True
         else:
@@ -35,7 +38,7 @@ class InterruptableThread(Thread):
 
     def __init__(self, target: Callable = None, name: str = None):
         super().__init__(target=target, name=name)
-        self._interrupted = False
+        self.interrupted = False
 
     def get_id(self):
         if hasattr(self, '_thread_id'):
@@ -137,8 +140,18 @@ class Worker(MessagingThread):
         broker.send(Message(Message.Type.HOTKEY_SET, action=action, hotkey=hotkey), self.output_queue)
 
     def action_write(self):
-        # TODO
-        pass
+        try:
+            win32clipboard.OpenClipboard()
+            data: str = win32clipboard.GetClipboardData()
+            if data is not None:
+                for char in data:
+                    time.sleep(random.uniform(0, 0.2))
+                    keyboard.write(char)
+        except TypeError:
+            pass
+        finally:
+            win32clipboard.CloseClipboard()
+            keyboard.release(self.hotkeys[self.action_write])
 
     def action_interrupt(self):
         # TODO
