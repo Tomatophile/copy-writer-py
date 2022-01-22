@@ -1,6 +1,6 @@
 import PySimpleGUI as Gui
 
-from app.actions import Actions
+from actions import Actions
 
 layout = [
     [Gui.Text('Helps you to paste copied value emulating keyboard typing.')],

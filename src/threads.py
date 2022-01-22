@@ -10,10 +10,10 @@ import PySimpleGUI
 import keyboard
 import win32clipboard
 
-from app import broker
-from app.actions import Actions
-from app.broker import Message
-from app.layout import layout
+import broker
+from actions import Actions
+from broker import Message
+from layout import layout
 
 logger = Logger('treads')
 

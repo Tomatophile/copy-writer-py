@@ -1,4 +1,4 @@
-from app.threads import Application
+from threads import Application
 
 application = Application('application', 'main', 'CopyWriter')
 application.start()
