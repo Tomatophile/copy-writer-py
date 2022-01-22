@@ -37,8 +37,15 @@ class InterruptableThread(Thread):
             return False
 
     def __init__(self, target: Callable = None, name: str = None):
-        super().__init__(target=target, name=name)
+        super().__init__(name=name)
+        self.run_method = target
+        self.ended = False
         self.interrupted = False
+
+    def run(self) -> None:
+        if self.run_method is not None:
+            self.run_method()
+        self.ended = True
 
     def get_id(self):
         if hasattr(self, '_thread_id'):
@@ -156,7 +163,7 @@ class Worker(MessagingThread):
 
     def action_write(self):
         keyboard.release(self.hotkeys[self.action_write])
-        if self.writing_thread is None or self.writing_thread.interrupted:
+        if self.writing_thread is None or self.writing_thread.ended or self.writing_thread.interrupted:
             self.writing_thread = InterruptableThread(Worker.write)
             self.writing_thread.start()
 
