@@ -2,13 +2,15 @@ import ctypes
 import threading
 from logging import Logger
 from threading import Thread
-from typing import Callable
+from typing import Callable, Any
 
+import PySimpleGUI
 import keyboard
 
 from app import broker
 from app.actions import Actions
 from app.broker import Message
+from app.layout import layout
 
 logger = Logger('treads')
 
@@ -72,13 +74,16 @@ class MessagingThread(InterruptableThread):
             pass
 
     def init(self) -> None:
-        self.init_method()
+        if self.init_method is not None:
+            self.init_method()
 
     def handle_message(self, message: Message) -> None:
-        self.message_handler(message)
+        if self.message_handler is not None:
+            self.message_handler(message)
 
     def loop(self) -> None:
-        self.loop_method()
+        if self.loop_method is not None:
+            self.loop_method()
 
 
 class Worker(MessagingThread):
@@ -117,15 +122,64 @@ class Worker(MessagingThread):
         action: Actions = message.kwargs.get('action')
         if action is None:
             raise ValueError('Action must be defined for hotkey')
-        hotkey: str = keyboard.read_hotkey()
+        hotkey: str = keyboard.read_hotkey()  # FIXME - First released key staying pressed
         self.hotkeys[self.callbacks[action]] = hotkey
         self.update_hotkeys()
         broker.send(Message(Message.Type.HOTKEY_SET, action=action, hotkey=hotkey), self.output_queue)
 
     def action_write(self):
-        #TODO
+        # TODO
         pass
 
     def action_interrupt(self):
-        #TODO
+        # TODO
         pass
+
+
+class Application(MessagingThread):
+    def __init__(self, input_queue: str, output_queue: str, title: str):
+        super().__init__(input_queue, output_queue)
+        self.message_handles: dict[Message.Type, list[Callable]] = {
+            Message.Type.HOTKEY_SET: [self.handle_hotkey_set]
+        }
+        self.window = PySimpleGUI.Window(title, layout, use_default_focus=False)
+        self.window_handlers: dict[Any, list[Callable]] = {
+            None: [self.window_exit],
+            'Exit': [self.window_exit],
+            Actions.WRITE: [self.set_hotkey],
+            Actions.INTERRUPT: [self.set_hotkey]
+        }
+        self.worker = Worker('worker', self.input_queue)
+
+    def init(self) -> None:
+        self.worker.start()
+
+    def handle_message(self, message: Message) -> None:
+        handlers = self.message_handles.get(message.type)
+        if handlers is not None:
+            for handler in handlers:
+                handler(message)
+
+    def handle_hotkey_set(self, message: Message) -> None:
+        action: Actions = message.kwargs.get('action')
+        if action is None:
+            raise ValueError('Action must be defined for hotkey')
+        hotkey: str = message.kwargs.get('hotkey')
+        self.window.Element(action).update(hotkey)
+
+    def loop(self) -> None:
+        self.handle_window()
+
+    def handle_window(self):
+        event, values = self.window.read(50, ('Timeout', None))
+        handlers = self.window_handlers.get(event)
+        if handlers is not None:
+            for handler in handlers:
+                handler(event, values)
+
+    def window_exit(self, event, values):
+        self.exit()
+
+    def set_hotkey(self, event, values):
+        self.window.Element(event).update('...')
+        broker.send(Message(Message.Type.SET_HOTKEY, action=event), self.worker.input_queue)
