@@ -157,7 +157,8 @@ class Worker(MessagingThread):
     def action_write(self):
         keyboard.release(self.hotkeys[self.action_write])
         if self.writing_thread is None or self.writing_thread.interrupted:
-            self.writing_thread = InterruptableThread(Worker.write())
+            self.writing_thread = InterruptableThread(Worker.write)
+            self.writing_thread.start()
 
     def action_interrupt(self):
         keyboard.release(self.hotkeys[self.action_interrupt])
