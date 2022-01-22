@@ -115,7 +115,9 @@ class Worker(MessagingThread):
                 for char in data:
                     time.sleep(random.uniform(0, 0.2))
                     keyboard.write(char)
-        except TypeError | InterruptedException:
+        except TypeError:
+            pass
+        except InterruptedException:
             pass
         finally:
             win32clipboard.CloseClipboard()
@@ -131,7 +133,7 @@ class Worker(MessagingThread):
         }
         self.hotkeys: dict[Callable, str] = {
             self.action_write: Actions.WRITE.value,
-            self.action_interrupt: Actions.INTERRUPT.value
+            self.action_interrupt: Actions.INTERRUPT.value #TODO - Need constraint for single keys
         }
         self.writing_thread = None
 
