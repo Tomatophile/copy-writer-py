@@ -69,19 +69,22 @@ class InterruptableThread(Thread):
 
 class MessagingThread(InterruptableThread):
     def __init__(self, input_queue: str, output_queue: str,
-                 init_method: Callable = None, loop_method: Callable = None,
+                 init_method: Callable = None,
+                 loop_method: Callable = None, loop_delay: int = 10,
                  message_handler: Callable = None):
         super().__init__()
         self.input_queue = input_queue
         self.output_queue = output_queue
         self.init_method = init_method
         self.loop_method = loop_method
+        self.loop_delay = loop_delay
         self.message_handler = message_handler
 
     def run(self) -> None:
         try:
             self.init()
             while True:
+                time.sleep(self.loop_delay / 1000)
                 message = broker.read(self.input_queue)
                 if message.type == Message.Type.INTERRUPT:
                     self.interrupt()
@@ -210,7 +213,7 @@ class Application(MessagingThread):
         self.handle_window()
 
     def handle_window(self):
-        event, values = self.window.read(50, ('Timeout', None))
+        event, values = self.window.read(10, ('Timeout', None))
         handlers = self.window_handlers.get(event)
         if handlers is not None:
             for handler in handlers:
