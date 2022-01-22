@@ -15,6 +15,10 @@ class InterruptedException(Exception):
 
 
 class InterruptableThread(Thread):
+    @staticmethod
+    def _interrupt(tid):
+        return ctypes.pythonapi.PyThreadState_SetAsyncExc(tid, ctypes.py_object(InterruptedException)) < 1
+
     def __init__(self, target: Callable = None, name: str = None):
         super().__init__(target=target, name=name)
 
@@ -26,7 +30,15 @@ class InterruptableThread(Thread):
                 return tid
 
     def interrupt(self) -> bool:
-        return ctypes.pythonapi.PyThreadState_SetAsyncExc(self.get_id(), ctypes.py_object(InterruptedException)) < 1
+        return InterruptableThread._interrupt(self.get_id())
+
+    def exit(self) -> None:
+        for tid, thread in threading._active.items():
+            if thread is self:
+                continue
+            if isinstance(thread, InterruptableThread):
+                InterruptableThread._interrupt(tid)
+        self.interrupt()
 
 
 class MessagingThread(InterruptableThread):
