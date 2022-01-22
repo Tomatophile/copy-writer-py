@@ -99,6 +99,20 @@ class MessagingThread(InterruptableThread):
 
 
 class Worker(MessagingThread):
+    @staticmethod
+    def write():
+        try:
+            win32clipboard.OpenClipboard()
+            data: str = win32clipboard.GetClipboardData()
+            if data is not None:
+                for char in data:
+                    time.sleep(random.uniform(0, 0.2))
+                    keyboard.write(char)
+        except TypeError | InterruptedException:
+            pass
+        finally:
+            win32clipboard.CloseClipboard()
+
     def __init__(self, input_queue: str, output_queue: str):
         super().__init__(input_queue, output_queue)
         self.message_handles: dict[Message.Type, list[Callable]] = {
@@ -112,6 +126,7 @@ class Worker(MessagingThread):
             self.action_write: Actions.WRITE.value,
             self.action_interrupt: Actions.INTERRUPT.value
         }
+        self.writing_thread = None
 
     def update_hotkeys(self) -> None:
         for callback, hotkey in self.hotkeys.items():
@@ -141,21 +156,17 @@ class Worker(MessagingThread):
 
     def action_write(self):
         try:
-            win32clipboard.OpenClipboard()
-            data: str = win32clipboard.GetClipboardData()
-            if data is not None:
-                for char in data:
-                    time.sleep(random.uniform(0, 0.2))
-                    keyboard.write(char)
-        except TypeError:
-            pass
+            if self.writing_thread is None or self.writing_thread.interrupted:
+                self.writing_thread = InterruptableThread(Worker.write())
         finally:
-            win32clipboard.CloseClipboard()
             keyboard.release(self.hotkeys[self.action_write])
 
     def action_interrupt(self):
-        # TODO
-        pass
+        try:
+            if self.writing_thread is not None and not self.writing_thread.interrupted:
+                self.writing_thread.interrupt()
+        finally:
+            keyboard.release(self.hotkeys[self.action_write])
 
 
 class Application(MessagingThread):
