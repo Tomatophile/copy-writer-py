@@ -1,5 +1,5 @@
 set artifactId=copy-writer
-set version=1.0.0
+set version=1.0.1
 
 set buildName=%artifactId%-%version%
 
