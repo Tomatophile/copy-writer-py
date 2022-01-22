@@ -21,12 +21,21 @@ class InterruptedException(Exception):
 
 class InterruptableThread(Thread):
     @staticmethod
-    def _interrupt(tid) -> bool:
+    def _interrupt(thread) -> bool:
+        tid = thread.get_id()
         logger.debug("Trying to interrupt thread with id = %s", tid)
-        return ctypes.pythonapi.PyThreadState_SetAsyncExc(tid, ctypes.py_object(InterruptedException)) < 1
+        if not isinstance(thread, InterruptableThread):
+            return False
+        thread._interrupted = ctypes.pythonapi.PyThreadState_SetAsyncExc(tid, ctypes.py_object(InterruptedException)) < 1
+        if thread._interrupted:
+            logger.debug("Interrupted thread with id = %s", tid)
+            return True
+        else:
+            return False
 
     def __init__(self, target: Callable = None, name: str = None):
         super().__init__(target=target, name=name)
+        self._interrupted = False
 
     def get_id(self):
         if hasattr(self, '_thread_id'):
@@ -36,15 +45,15 @@ class InterruptableThread(Thread):
                 return tid
 
     def interrupt(self) -> bool:
-        return InterruptableThread._interrupt(self.get_id())
+        return InterruptableThread._interrupt(self)
 
     def exit(self) -> None:
         logger.debug("Starting exit interrupt chain from thread with id = %s", self.get_id())
-        for tid, thread in threading._active.items():
+        for thread in threading._active.values():
             if thread is self:
                 continue
             if isinstance(thread, InterruptableThread):
-                InterruptableThread._interrupt(tid)
+                InterruptableThread._interrupt(thread)
         self.interrupt()
 
 
