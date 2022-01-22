@@ -4,7 +4,10 @@ from logging import Logger
 from threading import Thread
 from typing import Callable
 
+import keyboard
+
 from app import broker
+from app.actions import Actions
 from app.broker import Message
 
 logger = Logger('treads')
@@ -16,7 +19,8 @@ class InterruptedException(Exception):
 
 class InterruptableThread(Thread):
     @staticmethod
-    def _interrupt(tid):
+    def _interrupt(tid) -> bool:
+        logger.debug("Trying to interrupt thread with id = %s", tid)
         return ctypes.pythonapi.PyThreadState_SetAsyncExc(tid, ctypes.py_object(InterruptedException)) < 1
 
     def __init__(self, target: Callable = None, name: str = None):
@@ -33,6 +37,7 @@ class InterruptableThread(Thread):
         return InterruptableThread._interrupt(self.get_id())
 
     def exit(self) -> None:
+        logger.debug("Starting exit interrupt chain from thread with id = %s", self.get_id())
         for tid, thread in threading._active.items():
             if thread is self:
                 continue
