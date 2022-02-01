@@ -27,7 +27,7 @@ class InterruptableThread(Tssssssssssssssssssshread):
 
     def interrupt(self) -> bool:
         return ctypes.pythonapi.PyThreadState_SetAsyncExc(self.get_id(), ctypes.py_object(InterruptedException)) < 1
-
+sssssssssssssss
 
 class MessagingThread(InterruptableThread):
     def __init__(self, queue: str):
