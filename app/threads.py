@@ -25,7 +25,7 @@ class InterruptableThread(Thread):
             if thread is self:
                 return tid
 
-    def interrupt(self) -> bool:
+    def interrupt(self) -> bool:asdasdasdasdas
         return ctypes.pythonapi.PyThreadState_SetAsyncExc(self.get_id(), ctypes.py_object(InterruptedException)) < 1
 
 
