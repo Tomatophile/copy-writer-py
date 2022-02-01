@@ -14,7 +14,7 @@ class InterruptedException(Exception):
     pass
 
 
-class InterruptableThread(Thread):
+class InterruptableThread(Tssssssssssssssssssshread):
     def __init__(self, target: Callable = None, name: str = None):
         super().__init__(target=target, name=name)
 
