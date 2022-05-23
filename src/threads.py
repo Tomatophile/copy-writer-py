@@ -161,7 +161,7 @@ class Worker(MessagingThread):
         action: Actions = message.kwargs.get('action')
         if action is None:
             raise ValueError('Action must be defined for hotkey')
-        hotkey: str = keyboard.read_hotkey()  # FIXME - First released key staying pressed
+        hotkey: str = keyboard.read_hotkey()
         self.hotkeys[self.callbacks[action]] = hotkey
         self.update_hotkeys()
         broker.send(Message(Message.Type.HOTKEY_SET, action=action, hotkey=hotkey), self.output_queue)
@@ -223,5 +223,6 @@ class Application(MessagingThread):
         self.exit()
 
     def set_hotkey(self, event, values):
+        keyboard.stash_state()
         self.window.Element(event).update('...')
         broker.send(Message(Message.Type.SET_HOTKEY, action=event), self.worker.input_queue)
